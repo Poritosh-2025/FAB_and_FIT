@@ -1,0 +1,336 @@
+pip install google-generativeai
+pip install Pillow
+pip install dotenv
+
+
+### fab_and_fit/api/views.py
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import MultiPartParser
+from rest_framework import status
+from django.contrib.auth.models import User
+from rest_framework.decorators import api_view, permission_classes
+from dj_rest_auth.registration.views import RegisterView
+from dj_rest_auth.views import LoginView, LogoutView
+from .models import MealPlan, FoodItem, UserPreferences
+from .serializers import *
+
+# 1. Register API - using dj-rest-auth
+class CustomRegisterView(RegisterView):
+    pass
+
+# 2. Login API - using dj-rest-auth
+class CustomLoginView(LoginView):
+    pass
+
+# 3. Logout API - using dj-rest-auth
+class CustomLogoutView(LogoutView):
+    pass
+
+# 4. Analyze Image API
+class AnalyzeImageView(APIView):
+    parser_classes = [MultiPartParser]
+
+    def post(self, request):
+        image = request.FILES.get("image")
+        # Dummy response for now
+        return Response({
+            "foodItems": [
+                {"name": "Pizza", "estimatedCalories": 300, "confidence": 0.92},
+                {"name": "Salad", "estimatedCalories": 120, "confidence": 0.85}
+            ],
+            "summary": "Meal includes pizza and salad. Total estimated calories: 420 kcal."
+        })
+
+# 5. Search Food Nutrition
+@api_view(['GET'])
+def search_food_nutrition(request):
+    query = request.GET.get('query')
+    return Response({
+        "results": [{
+            "foodId": "123",
+            "name": "Apple, raw",
+            "nutrients": {"calories": 95, "protein": 0.5, "fat": 0.3, "carbohydrates": 25}
+        }]
+    })
+
+# 6. Generate Meal Plan
+class GenerateMealPlanView(APIView):
+    def post(self, request):
+        return Response({
+            "mealPlan": {
+                "Monday": [
+                    {"meal": "Breakfast", "items": ["Oatmeal with banana"], "calories": 350},
+                ]
+            }
+        })
+
+# 7. Grocery List
+class GetGroceryListView(APIView):
+    def post(self, request):
+        return Response({
+            "groceryList": [
+                {"item": "Oats", "quantity": "500g"},
+                {"item": "Bananas", "quantity": "6 pcs"}
+            ]
+        })
+
+# 8. User Preferences
+class UserPreferencesView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response({
+            "caloriesPerDay": 2000,
+            "dietType": "vegetarian",
+            "allergies": ["gluten"]
+        })
+
+    def post(self, request):
+        return Response({"message": "Preferences updated successfully."})
+
+# 9. Meal Plan History
+class MealPlanHistoryView(APIView):
+    def get(self, request):
+        return Response({
+            "history": [
+                {"mealPlanId": "mp_001", "dateRange": "2025-05-01 to 2025-05-07"},
+                {"mealPlanId": "mp_002", "dateRange": "2025-05-08 to 2025-05-14"}
+            ]
+        })
+
+# 10. Nutrition Summary
+class NutritionSummaryView(APIView):
+    def post(self, request):
+        return Response({
+            "totalCalories": 14000,
+            "averagePerDay": 2000,
+            "macros": {"protein": "20%", "fat": "30%", "carbs": "50%"}
+        })
+
+
+
+
+yes i need designing request/response formats (JSON schemas) for these APIs next?
+
+
+ChatGPT said:
+Great! Here's a detailed request/response JSON schema design for each of the key backend APIs. This will help you implement and document your API effectively.
+
+✅ 1. POST /register
+Request:
+
+json
+Copy
+Edit
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "securePassword123"
+}
+Response:
+
+json
+Copy
+Edit
+{
+  "message": "User registered successfully.",
+  "userId": "abc123"
+}
+✅ 2. POST /login
+Request:
+
+json
+Copy
+Edit
+{
+  "email": "john@example.com",
+  "password": "securePassword123"
+}
+Response:
+
+json
+Copy
+Edit
+{
+  "message": "Login successful.",
+  "token": "jwt_or_session_token_here"
+}
+✅ 3. POST /logout
+Request: (token sent via headers)
+
+Response:
+
+json
+Copy
+Edit
+{
+  "message": "Logout successful."
+}
+✅ 4. POST /analyze-image
+Request:
+
+multipart/form-data with a field named image
+
+Response:
+
+json
+Copy
+Edit
+{
+  "foodItems": [
+    {
+      "name": "Pizza",
+      "estimatedCalories": 300,
+      "confidence": 0.92
+    },
+    {
+      "name": "Salad",
+      "estimatedCalories": 120,
+      "confidence": 0.85
+    }
+  ],
+  "summary": "Meal includes pizza and salad. Total estimated calories: 420 kcal."
+}
+✅ 5. GET /search-food-nutrition?query=apple
+Response:
+
+json
+Copy
+Edit
+{
+  "results": [
+    {
+      "foodId": "123",
+      "name": "Apple, raw",
+      "nutrients": {
+        "calories": 95,
+        "protein": 0.5,
+        "fat": 0.3,
+        "carbohydrates": 25
+      }
+    }
+  ]
+}
+✅ 6. POST /generate-meal-plan
+Request:
+
+json
+Copy
+Edit
+{
+  "caloriesPerDay": 2000,
+  "dietType": "vegetarian",
+  "allergies": ["nuts", "gluten"]
+}
+Response:
+
+json
+Copy
+Edit
+{
+  "mealPlan": {
+    "Monday": [
+      {
+        "meal": "Breakfast",
+        "items": ["Oatmeal with banana"],
+        "calories": 350
+      },
+      ...
+    ],
+    ...
+  }
+}
+✅ 7. POST /get-grocery-list
+Request:
+
+json
+Copy
+Edit
+{
+  "mealPlanId": "mp_789xyz"
+}
+Response:
+
+json
+Copy
+Edit
+{
+  "groceryList": [
+    { "item": "Oats", "quantity": "500g" },
+    { "item": "Bananas", "quantity": "6 pcs" }
+  ]
+}
+✅ 8. GET /user-preferences
+Response:
+
+json
+Copy
+Edit
+{
+  "caloriesPerDay": 2000,
+  "dietType": "vegetarian",
+  "allergies": ["gluten"]
+}
+✅ POST /user-preferences
+Request:
+
+json
+Copy
+Edit
+{
+  "caloriesPerDay": 1800,
+  "dietType": "keto",
+  "allergies": ["dairy"]
+}
+Response:
+
+json
+Copy
+Edit
+{
+  "message": "Preferences updated successfully."
+}
+✅ 9. GET /meal-plan-history
+Response:
+
+json
+Copy
+Edit
+{
+  "history": [
+    {
+      "mealPlanId": "mp_001",
+      "dateRange": "2025-05-01 to 2025-05-07"
+    },
+    {
+      "mealPlanId": "mp_002",
+      "dateRange": "2025-05-08 to 2025-05-14"
+    }
+  ]
+}
+✅ 10. POST /nutrition-summary
+Request:
+
+json
+Copy
+Edit
+{
+  "mealPlanId": "mp_002"
+}
+Response:
+
+json
+Copy
+Edit
+{
+  "totalCalories": 14000,
+  "averagePerDay": 2000,
+  "macros": {
+    "protein": "20%",
+    "fat": "30%",
+    "carbs": "50%"
+  }
+}
+Would you like me to generate OpenAPI (Swagger) spec or a Postman collection for these next?
